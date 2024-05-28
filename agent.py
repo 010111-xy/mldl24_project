@@ -97,9 +97,13 @@ class Agent(object):
         #
         # TASK 2:
         #   - compute discounted returns
+        discounted_returns = discounted_rewards(rewards, self.gamma)
         #   - compute policy gradient loss function given actions and returns
+        policy_loss = torch.sum(discounted_returns*action_log_probs)
         #   - compute gradients and step the optimizer
-        #
+        self.optimizer.zero_grad()     # Zero the gradients of the optimizer
+        policy_loss.backward()         # Backpropagate the policy loss
+        self.optimizer.step()          # Step the optimizer to update the policy parameters
 
 
         #
