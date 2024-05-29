@@ -38,7 +38,10 @@ class Policy(torch.nn.Module):
             Critic network
         """
         # TASK 3: critic network for actor-critic algorithm
-
+        self.fc1_critic = torch.nn.Linear(state_space, self.hidden) #torch.nn.Linear(dominio, codominio)
+        self.fc2_critic = torch.nn.Linear(self.hidden, self.hidden)
+        self.fc3_critic = torch.nn.Linear(self.hidden, 1) #we put 1 because critic returns a scalar value, which is V(s)
+        
 
         self.init_weights()
 
@@ -66,9 +69,12 @@ class Policy(torch.nn.Module):
             Critic
         """
         # TASK 3: forward in the critic network
+        x_critic = self.tanh(self.fc1_critic(x))
+        x_crtitic = self.tanh(self.fc2_critic(x_critic))
+        state_value = self.fc3_critic(x_actor)
 
         
-        return normal_dist
+        return normal_dist, state_value
 
 
 class Agent(object):
@@ -86,13 +92,14 @@ class Agent(object):
 
 
     def update_policy(self):
+        #CONVERT LIST OF EXPERIENCES INTO TENSORS ---> torch.stack(..)
+        #AND MOVE THEM IN THE TRAINING DEVICE
         action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
         states = torch.stack(self.states, dim=0).to(self.train_device).squeeze(-1)
         next_states = torch.stack(self.next_states, dim=0).to(self.train_device).squeeze(-1)
         rewards = torch.stack(self.rewards, dim=0).to(self.train_device).squeeze(-1)
         done = torch.Tensor(self.done).to(self.train_device)
 
-        self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
 
         #
         # TASK 2:
@@ -114,6 +121,8 @@ class Agent(object):
         #   - compute gradients and step the optimizer
         #
 
+        #clear buffers when you reach the end of the episode
+        self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
         return        
 
 
