@@ -88,7 +88,7 @@ class Agent(object):
         self.next_states = []
         self.action_log_probs = []
         self.rewards = []
-        self.done = []
+        self.done = [] #done has boolean values, it has True if the state we are in is terminal
 
 
     def update_policy(self):
@@ -116,9 +116,22 @@ class Agent(object):
         #
         # TASK 3:
         #   - compute boostrapped discounted return estimates
-        #   - compute advantage terms
+        with torch.no_grad():
+	        next_state_values = self.critic(next_states) * (1 - done)  #V(s_(t+1))
+	    
+        bootstrapped_estimates = rewards + self.gamma*next_state_values
+        #   - compute advantage 
+        #V(s_t)
+        state_values = self.critic(states)
+        advantages = bootstrapped_estimates-state_values
         #   - compute actor loss and critic loss
+        actor_loss = -torch.sum(action_log_probs * advantages.detach())
+        critic_loss = critic_loss = torch.mean((advantages) ** 2)
         #   - compute gradients and step the optimizer
+        total_loss = actor_loss = critic_loss
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
         #
 
         #clear buffers when you reach the end of the episode
