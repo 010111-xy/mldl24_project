@@ -38,7 +38,9 @@ class Policy(torch.nn.Module):
             Critic network
         """
         # TASK 3: critic network for actor-critic algorithm
-
+        self.fc1_critic = torch.nn.Linear(state_space, self.hidden)
+        self.fc2_critic = torch.nn.Linear(self.hidden, self.hidden)
+        self.fc3_critic = torch.nn.Linear(self.hidden, 1)
 
         self.init_weights()
 
@@ -66,9 +68,11 @@ class Policy(torch.nn.Module):
             Critic
         """
         # TASK 3: forward in the critic network
-
+        x_critic = self.tanh(self.fc1_critic(x))
+        x_critic = self.tanh(self.fc2_critic(x_critic))
+        value = self.fc3_critic(x_critic)
         
-        return normal_dist
+        return normal_dist, value
 
 
 class Agent(object):
@@ -101,6 +105,9 @@ class Agent(object):
         #   - compute gradients and step the optimizer
         #
 
+        # compute discounted returns
+        discounted_returns = discount_rewards(rewards, self.gamma)
+        
 
         #
         # TASK 3:
@@ -109,7 +116,18 @@ class Agent(object):
         #   - compute actor loss and critic loss
         #   - compute gradients and step the optimizer
         #
+        _, values = self.policy(states)
+        _, next_values = self.policy(next_states)
 
+        advantages = discounted_returns - values.squeeze()
+
+        actor_loss = -(action_log_probs * advantages.detach()).mean()
+        critic_loss = F.mse_loss(values.squeeze(), discounted_returns)
+        loss = actor_loss + critic_loss
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
         return        
 
 
@@ -117,7 +135,7 @@ class Agent(object):
         """ state -> action (3-d), action_log_densities """
         x = torch.from_numpy(state).float().to(self.train_device)
 
-        normal_dist = self.policy(x)
+        normal_dist, _ = self.policy(x)
 
         if evaluation:  # Return mean
             return normal_dist.mean, None
