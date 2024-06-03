@@ -5,9 +5,11 @@ import argparse
 
 import torch
 import gym
+import datetime
 
 from env.custom_hopper import *
 from agent import Agent, Policy
+from agent_reinforce import REINFORCE, PolicyNetwork
 
 
 def parse_args():
@@ -15,6 +17,7 @@ def parse_args():
     parser.add_argument('--n-episodes', default=100000, type=int, help='Number of training episodes')
     parser.add_argument('--print-every', default=20000, type=int, help='Print info every <> episodes')
     parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
+    parser.add_argument('--model-type', default='REINFORCE', type=str, help='model type [REINFORCE, actor-critic]')
 
     return parser.parse_args()
 
@@ -37,8 +40,12 @@ def main():
 	observation_space_dim = env.observation_space.shape[-1]
 	action_space_dim = env.action_space.shape[-1]
 
-	policy = Policy(observation_space_dim, action_space_dim)
-	agent = Agent(policy, device=args.device)
+	if args.model_type == 'REINFORCE':
+		policy = Policy(observation_space_dim, action_space_dim)
+		agent = Agent(policy, device=args.device)
+	else:
+		policy = PolicyNetwork(observation_space_dim, action_space_dim)
+		agent = REINFORCE(policy, device=args.device)
 
     #
     # TASK 2 and 3: interleave data collection to policy updates
@@ -64,11 +71,12 @@ def main():
 		agent.update_policy()
 		
 		if (episode+1)%args.print_every == 0:
-			print('Training episode:', episode)
+			print('Time:', datetime.datetime)
+			print('Training episode:', episode + 1)
 			print('Episode return:', train_reward)
 
 
-	torch.save(agent.policy.state_dict(), "model.mdl")
+	torch.save(agent.policy.state_dict(), "model_REINFORCE.mdl")
 
 	
 
