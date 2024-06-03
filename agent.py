@@ -13,6 +13,16 @@ def discount_rewards(r, gamma):
     return discounted_r
 
 
+def boostrapped_discounted_rewards(r, gamma, done, next_values):
+    boostrapped_discounted_r = torch.zeros_like(r)
+    running_add = 0
+    for t in reversed(range(0, r.size(-1))):
+        if done[t]:
+            running_add = 0
+        running_add = next_values[t] * gamma
+        boostrapped_discounted_r[t] = r[t] + running_add
+    return boostrapped_discounted_r
+
 class Policy(torch.nn.Module):
     def __init__(self, state_space, action_space):
         super().__init__()
@@ -98,17 +108,9 @@ class Agent(object):
 
         self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
 
-        #
-        # TASK 2:
-        #   - compute discounted returns
-        #   - compute policy gradient loss function given actions and returns
-        #   - compute gradients and step the optimizer
-        #
-
         # compute discounted returns
-        discounted_returns = discount_rewards(rewards, self.gamma)
+        # discounted_returns = discount_rewards(rewards, self.gamma)
         
-
         #
         # TASK 3:
         #   - compute boostrapped discounted return estimates
@@ -119,10 +121,13 @@ class Agent(object):
         _, values = self.policy(states)
         _, next_values = self.policy(next_states)
 
+        discounted_returns = boostrapped_discounted_rewards(rewards, self.gamma, done, next_values)
         advantages = discounted_returns - values.squeeze()
 
         actor_loss = -(action_log_probs * advantages.detach()).mean()
-        critic_loss = F.mse_loss(values.squeeze(), discounted_returns)
+        # critic_loss = F.mse_loss(values.squeeze(), discounted_returns)
+
+        critic_loss = F.pairwise_distance(values.squeeze(), discounted_returns, p=2)
         loss = actor_loss + critic_loss
 
         self.optimizer.zero_grad()

@@ -104,7 +104,7 @@ class REINFORCE(object):
         """ state -> action (3-d), action_log_densities """
         x = torch.from_numpy(state).float().to(self.train_device)
 
-        normal_dist, _ = self.policy(x)
+        normal_dist = self.policy(x)
 
         if evaluation:  # Return mean
             return normal_dist.mean, None
