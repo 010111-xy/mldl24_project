@@ -17,10 +17,7 @@ def bootstrapped_discount_rewards(r, gamma, done, next_values):
     bootstrapped_discounted_r = torch.zeros_like(r)
     running_add = 0
     for t in reversed(range(0, r.size(-1))):
-        if done[t]:
-            running_add = 0
-        else:
-            running_add = r[t] + gamma * next_values[t]
+        running_add = r[t] + gamma * next_values[t] * (1 - done[t])
         bootstrapped_discounted_r[t] = running_add
     return bootstrapped_discounted_r
 
