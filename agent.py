@@ -17,7 +17,10 @@ def bootstrapped_discount_rewards(r, gamma, done, next_values):
     bootstrapped_discounted_r = torch.zeros_like(r)
     running_add = 0
     for t in reversed(range(0, r.size(-1))):
-        running_add = r[t] + gamma * next_values[t] * (1 - done[t])
+        if done[t]:
+            running_add = 0
+        else:
+            running_add = r[t] + gamma * next_values[t]
         bootstrapped_discounted_r[t] = running_add
     return bootstrapped_discounted_r
 
@@ -107,7 +110,7 @@ class Agent(object):
         self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
 
         # compute discounted returns
-        # discounted_returns = discount_rewards(rewards, self.gamma)
+        discounted_returns = discount_rewards(rewards, self.gamma)
         
         #
         # TASK 3:
@@ -119,13 +122,13 @@ class Agent(object):
         _, values = self.policy(states)
         _, next_values = self.policy(next_states)
 
-        discounted_returns = bootstrapped_discount_rewards(rewards, self.gamma, done, next_values)
+        # discounted_returns = bootstrapped_discount_rewards(rewards, self.gamma, done, next_values)
         advantages = discounted_returns - values.squeeze()
 
         actor_loss = -(action_log_probs * advantages.detach()).mean()
-        critic_loss = F.mse_loss(values.squeeze(), discounted_returns)
+        # critic_loss = F.mse_loss(values.squeeze(), discounted_returns)
 
-        #critic_loss = F.pairwise_distance(values.squeeze(), discounted_returns, p=2)
+        critic_loss = F.pairwise_distance(values.squeeze(), discounted_returns.unsqueeze(1), p=2).mean()
         loss = actor_loss + critic_loss
 
         self.optimizer.zero_grad()

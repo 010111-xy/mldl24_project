@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument('--n-episodes', default=100000, type=int, help='Number of training episodes')
     parser.add_argument('--print-every', default=20000, type=int, help='Print info every <> episodes')
     parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
-    parser.add_argument('--model-type', default='REINFORCE', type=str, help='model type [REINFORCE, actor-critic]')
+    parser.add_argument('--model-type', default='actor-critic', type=str, help='model type [REINFORCE, actor-critic]')
 
     return parser.parse_args()
 
@@ -77,8 +77,7 @@ def main():
 			print('Training episode:', episode + 1)
 			print('Episode return:', train_reward)
 
-
-	torch.save(agent.policy.state_dict(), "model.mdl")
+	torch.save(agent.policy.state_dict(), "model1.mdl")
 
 	
 
