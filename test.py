@@ -6,9 +6,11 @@ import gym
 
 from env.custom_hopper import *
 from agent import Agent, Policy
+from agent_reinforce import REINFORCE, PolicyNetwork
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--model-type', default='REINFORCE', type=str, help='model type [REINFORCE, actor-critic]')
     parser.add_argument('--model', default='model.mdl', type=str, help='Model path')
     parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
     parser.add_argument('--render', default=True, action='store_true', help='Render the simulator')
@@ -31,10 +33,16 @@ def main():
 	observation_space_dim = env.observation_space.shape[-1]
 	action_space_dim = env.action_space.shape[-1]
 
-	policy = Policy(observation_space_dim, action_space_dim)
+	if args.model_type == 'REINFORCE':
+		policy = PolicyNetwork(observation_space_dim, action_space_dim)
+		agent = REINFORCE(policy, device=args.device)
+	else:
+		policy = Policy(observation_space_dim, action_space_dim)
+		agent = Agent(policy, device=args.device)
+	
 	policy.load_state_dict(torch.load(args.model), strict=True)
 
-	agent = Agent(policy, device=args.device)
+	
 
 	for episode in range(args.episodes):
 		done = False
