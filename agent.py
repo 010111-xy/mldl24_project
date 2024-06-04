@@ -12,6 +12,17 @@ def discount_rewards(r, gamma):
         discounted_r[t] = running_add
     return discounted_r
 
+def bootstrapped_discount_rewards(r, gamma, done, next_values):
+    bootstrapped_discounted_r = torch.zeros_like(r)
+    running_add = 0
+    for t in reversed(range(0, r.size(-1))):
+        if done[t]:
+            running_add = 0
+        else:
+            running_add = r[t] + gamma * next_values[t]
+        bootstrapped_discounted_r[t] = running_add
+    return bootstrapped_discounted_r
+
 
 class Policy(torch.nn.Module):
     def __init__(self, state_space, action_space):
@@ -70,8 +81,8 @@ class Policy(torch.nn.Module):
         """
         # TASK 3: forward in the critic network
         x_critic = self.tanh(self.fc1_critic(x))
-        x_crtitic = self.tanh(self.fc2_critic(x_critic))
-        state_value = self.fc3_critic(x_actor)
+        x_critic = self.tanh(self.fc2_critic(x_critic))
+        state_value = self.fc3_critic(x_critic)
 
         
         return normal_dist, state_value
@@ -81,6 +92,7 @@ class Agent(object):
     def __init__(self, policy, device='cpu'):
         self.train_device = device
         self.policy = policy.to(self.train_device)
+        self.critic = policy.to(self.train_device)  # Use policy as critic
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=1e-3)
 
         self.gamma = 0.99
@@ -105,9 +117,9 @@ class Agent(object):
         # TASK 2:
         #   - compute discounted returns
         discounted_returns = discount_rewards(rewards, self.gamma)
-        #   - compute policy gradient loss function given actions and returns
-        policy_loss = torch.sum(discounted_returns*action_log_probs)
-        #   - compute gradients and step the optimizer
+        # compute policy gradient loss function given actions and returns
+        policy_loss = -torch.sum(discounted_returns.detach()*action_log_probs)
+         # - compute gradients and step the optimizer
         self.optimizer.zero_grad()     # Zero the gradients of the optimizer
         policy_loss.backward()         # Backpropagate the policy loss
         self.optimizer.step()          # Step the optimizer to update the policy parameters
@@ -116,19 +128,18 @@ class Agent(object):
         #
         # TASK 3:
         #   - compute boostrapped discounted return estimates
-        with torch.no_grad():
-	        next_state_values = self.critic(next_states) * (1 - done)  #V(s_(t+1))
-	    
-        bootstrapped_estimates = rewards + self.gamma*next_state_values
-        #   - compute advantage 
+        _, next_values = self.policy(next_states)
+        bootstrapped_estimates = bootstrapped_discount_rewards(rewards, self.gamma, done, next_values)
+        #  - compute advantage 
         #V(s_t)
-        state_values = self.critic(states)
+        _, state_values = self.policy(states)
+        #state_values = self.critic(states)
         advantages = bootstrapped_estimates-state_values
         #   - compute actor loss and critic loss
         actor_loss = -torch.sum(action_log_probs * advantages.detach())
-        critic_loss = critic_loss = torch.mean((advantages) ** 2)
+        critic_loss = F.mse_loss(state_values.squeeze(), bootstrapped_estimates.detach)
         #   - compute gradients and step the optimizer
-        total_loss = actor_loss = critic_loss
+        total_loss = actor_loss + critic_loss
         self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()
@@ -136,14 +147,14 @@ class Agent(object):
 
         #clear buffers when you reach the end of the episode
         self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
-        return        
+        return 
 
 
     def get_action(self, state, evaluation=False):
         """ state -> action (3-d), action_log_densities """
         x = torch.from_numpy(state).float().to(self.train_device)
 
-        normal_dist = self.policy(x)
+        normal_dist, _ = self.policy(x)
 
         if evaluation:  # Return mean
             return normal_dist.mean, None

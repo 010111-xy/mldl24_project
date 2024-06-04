@@ -59,6 +59,9 @@ def main():
 			agent.store_outcome(previous_state, state, action_probabilities, reward, done)
 
 			train_reward += reward
+
+		#update policy	
+		agent.update_policy()
 		
 		if (episode+1)%args.print_every == 0:
 			print('Training episode:', episode)
