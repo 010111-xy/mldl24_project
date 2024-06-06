@@ -34,11 +34,11 @@ def main():
     source_on_source_mean, source_on_source_std = test_model(source_model, source_env_id)
     print(f"source -> source: {source_on_source_mean} -> {source_on_source_std}")
     source_on_target_mean, source_on_target_std = test_model(source_model, target_env_id)
-    print(f"source -> target: {source_on_target_mean} -> {source_on_target_std}")
+    print(f"Lower bound: source -> target: {source_on_target_mean} -> {source_on_target_std}")
 
     target_model = train_model(target_env_id)
     target_on_target_mean, target_on_target_std = test_model(target_model, target_env_id)
-    print(f"target -> target: {target_on_target_mean} -> {target_on_target_std}")
+    print(f"Upper bound: target -> target: {target_on_target_mean} -> {target_on_target_std}")
 
 
 def test():
