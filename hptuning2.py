@@ -1,4 +1,4 @@
-import gym
+rimport gym
 from env.custom_hopper import *
 import numpy as np
 from stable_baselines3 import PPO
@@ -33,7 +33,7 @@ target_env = DummyVecEnv([lambda: gym.make(target_env_name)])
 def objective(trial):
     # Define the hyperparameters to tune
     learning_rate = trial.suggest_loguniform('learning_rate', 5e-4, 1e-2)
-    n_steps = trial.suggest_categorical('n_steps', [512, 1024, 2048, 4096])
+    n_steps = trial.suggest_categorical('n_steps', [512, 1024, 2048])
     n_epochs = trial.suggest_int('n_epochs', 1, 10)
     clip_range = trial.suggest_uniform('clip_range', 0.1, 0.4)
 
@@ -62,7 +62,7 @@ def objective(trial):
 
 # Create an Optuna study and optimize the objective function
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=50)
+study.optimize(objective, n_trials=25)
 
 # Get the best hyperparameters
 best_hyperparameters = study.best_params
