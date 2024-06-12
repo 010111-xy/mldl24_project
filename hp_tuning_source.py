@@ -23,7 +23,9 @@ def evaluate_agent(agent, env, num_episodes=50, render=False):
             obs, reward, done, _ = env.step(action)
             episode_reward += reward
         episode_rewards.append(episode_reward)
-    return np.mean(episode_rewards)
+    mean_reward = np.mean(episode_rewards)
+    reward_std = np.std(episode_rewards)
+    return mean_reward, reward_std
 
 # Initialize the environments
 source_env = DummyVecEnv([lambda: gym.make(source_env_name)])
@@ -33,21 +35,21 @@ target_env = DummyVecEnv([lambda: gym.make(target_env_name)])
 def objective(trial):
     # Define the hyperparameters to tune
     learning_rate = trial.suggest_loguniform('learning_rate', 5e-4, 1e-2)
-    n_steps = trial.suggest_categorical('n_steps', [512, 1024, 2048, 4096])
+    n_steps = trial.suggest_categorical('n_steps', [256, 512, 1024, 2048])
     n_epochs = trial.suggest_int('n_epochs', 1, 10)
-    clip_range = trial.suggest_uniform('clip_range', 0.1, 0.4)
+    clip_range = trial.suggest_float('clip_range', 0.1, 0.4)
 
     # Define hyperparameters for training on the source domain
     hyperparameters = {
         'learning_rate': learning_rate,
         'n_steps': n_steps,
-        'batch_size': 64,
-        'gamma': 0.99,
-        'ent_coef': 0.01,
+        #'batch_size': 64,
+        #'gamma': 0.99,
+        #'ent_coef': 0.01,
         'clip_range': clip_range,
         'n_epochs': n_epochs,
-        'max_grad_norm': 0.5,
-        'vf_coef': 0.5,
+        #'max_grad_norm': 0.5,
+        #'vf_coef': 0.5,
         'tensorboard_log': None
     }
 
@@ -56,7 +58,7 @@ def objective(trial):
     agent.learn(total_timesteps=100000)
 
     # Evaluate the agent
-    mean_reward = evaluate_agent(agent, source_env)
+    mean_reward, _ = evaluate_agent(agent, source_env)
     
     return mean_reward
 
@@ -72,23 +74,23 @@ print("Best mean reward:", best_mean_reward)
 print("Best hyperparameters:", best_hyperparameters)
 
 # Train the source agent with the best hyperparameters
-source_agent = PPO('MlpPolicy', source_env, verbose=1, **best_hyperparameters)
+source_agent = PPO('MlpPolicy', source_env, verbose=0, **best_hyperparameters)
 source_agent.learn(total_timesteps=100000)
 
 # Train the target agent with default hyperparameters
-target_agent = PPO('MlpPolicy', target_env, verbose=1)
+target_agent = PPO('MlpPolicy', target_env, verbose=0)
 target_agent.learn(total_timesteps=100000)
 
 # Evaluate the agents with rendering enabled
-source_source_return = evaluate_agent(source_agent, source_env, render=True)
-source_target_return = evaluate_agent(source_agent, target_env, render=True)
-target_target_return = evaluate_agent(target_agent, target_env, render=True)
+source_source_return, source_source_std = evaluate_agent(source_agent, source_env, render=True)
+source_target_return, source_target_std = evaluate_agent(source_agent, target_env, render=True)
+target_target_return, target_target_std = evaluate_agent(target_agent, target_env, render=True)
 
 # Close the environments after evaluation
 source_env.close()
 target_env.close()
 
 # Print results
-print("Source→Source return:", source_source_return)
-print("Source→Target return (lower bound):", source_target_return)
-print("Target→Target return (upper bound):", target_target_return)
+print(f"Source→Source return: {source_source_return}, std: {source_source_std}")
+print(f"Source→Target return (lower bound): {source_target_return}, std: {source_target_std}")
+print(f"Target→Target return (upper bound): {target_target_return}, std: {target_target_std}")
