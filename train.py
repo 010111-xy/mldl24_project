@@ -10,6 +10,7 @@ from datetime import datetime
 from env.custom_hopper import *
 from agent import Agent, Policy
 from agent_reinforce import REINFORCE, PolicyNetwork
+from torch.utils.tensorboard import SummaryWriter
 
 
 def parse_args():
@@ -26,6 +27,7 @@ args = parse_args()
 
 def main():
 
+	writer = SummaryWriter('tensor_board/agent')
 	env = gym.make('CustomHopper-source-v0')
 	# env = gym.make('CustomHopper-target-v0')
 	print('Train Start Time:', datetime.now())
@@ -71,12 +73,14 @@ def main():
 		
 		# update the policy
 		agent.update_policy()
+
+		writer.add_scalar('Actor-Critic Reward/train', train_reward, episode)
 		
 		if (episode+1)%args.print_every == 0:
 			print('Time:', datetime.now())
 			print('Training episode:', episode + 1)
 			print('Episode return:', train_reward)
-
+	writer.close()
 	torch.save(agent.policy.state_dict(), "model1.mdl")
 
 	

@@ -20,8 +20,8 @@ def bootstrapped_discount_rewards(r, gamma, done, next_values):
         if done[t]:
             running_add = 0
         else:
-            running_add = r[t] + gamma * next_values[t]
-        bootstrapped_discounted_r[t] = running_add
+            running_add = gamma * next_values[t]
+        bootstrapped_discounted_r[t] = running_add + r[t]
     return bootstrapped_discounted_r
 
 class Policy(torch.nn.Module):

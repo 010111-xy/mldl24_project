@@ -16,7 +16,7 @@ def parse_args():
 		# model3.mdl bootstrapped_discount_rewards l2_loss
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-type', default='actor-critic', type=str, help='model type [REINFORCE, actor-critic]')
-    parser.add_argument('--model', default='model0.mdl', type=str, help='Model path')
+    parser.add_argument('--model', default='model1.mdl', type=str, help='Model path')
     parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
     parser.add_argument('--render', default=True, action='store_true', help='Render the simulator')
     parser.add_argument('--episodes', default=500, type=int, help='Number of test episodes')
