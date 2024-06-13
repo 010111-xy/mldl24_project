@@ -44,7 +44,7 @@ def main():
 
 
 def test():
-    model = PPO.load('model_ppo_source')
+    model = PPO.load('task6_trained_model')
     env = gym.make('CustomHopper-source-v0')
     obs = env.reset()
     for _ in range(1000):
